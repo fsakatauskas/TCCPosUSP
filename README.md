@@ -78,6 +78,12 @@ Arial 12 pt em todas as saídas: `mainfont=Arial` no PDF, o tema de `referencia.
 | `norma-institucional` | nenhuma menção a ABNT |
 | `yaml:aspas` | valores com `:` entre aspas (evita o `true`) |
 | `bib:integro` | sem referências órfãs |
+| `citacoes:autoria` | `[-@chave]` sempre com o sobrenome no texto |
+| `cabecalho:campos` | só Aluno(a), Orientador(a), Curso e o título |
+| `bib:data-acesso` | todo recurso on-line com `Acesso em:` |
+| `bib:local-livro` | livros com local e país |
+| `docx:acesso` | `Disponível em:` / `Acesso em:` na saída |
+| `docx:citacao-sem-autor` | nenhuma citação só com o ano |
 | `docx:*` | cabeçalho, ausência de sumário, referências no padrão |
 
 ```sh

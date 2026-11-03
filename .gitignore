@@ -68,3 +68,7 @@ output/
 secrets.json
 
 
+
+# Python
+__pycache__/
+*.pyc

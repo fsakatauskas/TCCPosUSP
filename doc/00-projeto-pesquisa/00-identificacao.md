@@ -5,5 +5,3 @@
 | **Curso** | MBA em Engenharia de Software EaD - 2º semestre 2025 |
 
 # Gerenciamento e Estruturação de APIs REST com OpenAPI, Versionamento, Governança e Segurança
-
-**Disponibilidade:** https://github.com/fsakatauskas/TCCPosUSP

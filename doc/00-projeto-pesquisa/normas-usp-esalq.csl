@@ -18,7 +18,8 @@
 
   <macro name="autor-curto">
     <names variable="author">
-      <name form="short" name-as-sort-order="all" sort-separator=", " initialize-with="." delimiter="; "/>
+      <name form="short" et-al-min="3" et-al-use-first="1" delimiter="; "/>
+      <et-al term="et-al" font-style="normal"/>
       <substitute>
         <text variable="title"/>
       </substitute>
@@ -31,13 +32,29 @@
     </date>
   </macro>
 
+  <macro name="acesso">
+    <group delimiter=" " suffix=".">
+      <text value="Disponível em:"/>
+      <text variable="URL"/>
+    </group>
+    <date variable="accessed" prefix=" Acesso em: " suffix="." delimiter=" ">
+      <date-part name="day"/>
+      <date-part name="month" form="short" suffix="."/>
+      <date-part name="year"/>
+    </date>
+  </macro>
+
   <macro name="fonte">
-    <group delimiter=", ">
-      <text variable="container-title"/>
-      <text variable="publisher"/>
-      <text variable="genre"/>
-      <text variable="number"/>
-      <text variable="publisher-place"/>
+    <group delimiter=". ">
+      <group delimiter=", ">
+        <text variable="genre"/>
+        <text variable="container-title"/>
+        <text variable="publisher"/>
+        <text variable="number"/>
+        <text variable="note"/>
+        <text variable="publisher-place"/>
+      </group>
+      <text variable="DOI"/>
     </group>
   </macro>
 
@@ -61,8 +78,7 @@
         <text macro="ano"/>
         <text variable="title"/>
         <text macro="fonte"/>
-        <text variable="URL"/>
-        <text variable="DOI"/>
+        <text macro="acesso"/>
       </group>
     </layout>
   </bibliography>

@@ -1,6 +1,6 @@
 """Imprime o nome do arquivo de saída: primeiro nome + último sobrenome + tipo do documento.
 
-  python3 .guardrail/nome.py 00-projeto-pesquisa  ->  FelipeSakatauskas Projeto de Pesquisa
+  python3 .guardrail/nome.py 00-projeto-pesquisa  ->  Felipe Sakatauskas - Projeto de Pesquisa
 """
 
 import sys

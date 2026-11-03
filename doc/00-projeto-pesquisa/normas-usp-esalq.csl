@@ -46,8 +46,8 @@
 
   <macro name="fonte">
     <group delimiter=". ">
+      <text variable="genre"/>
       <group delimiter=", ">
-        <text variable="genre"/>
         <text variable="container-title"/>
         <text variable="publisher"/>
         <text variable="number"/>

@@ -20,8 +20,8 @@ makefile                     # alvos de compilação
 ```
 
 A saída de todos os documentos fica no `output/` da raiz do repositório, nomeada
-`<PrimeiroNome><ÚltimoSobrenome> <Tipo do documento>` — por exemplo
-`FelipeSakatauskas Projeto de Pesquisa.docx` — como exige o Sistema de Orientação.
+`<Primeiro nome> <Último sobrenome> - <Tipo do documento>` — por exemplo
+`Felipe Sakatauskas - Projeto de Pesquisa.docx` — como exige o Sistema de Orientação.
 
 ## Compilar
 
@@ -69,7 +69,7 @@ Arial 12 pt em todas as saídas: `mainfont=Arial` no PDF, o tema de `referencia.
 
 | Regra | Verifica |
 |---|---|
-| `arquivo:nome` | primeiro nome + último sobrenome + tipo do documento |
+| `arquivo:nome` | `Nome Sobrenome - Tipo do documento` |
 | `metadata:*` | `pagetitle`, `aluno`, `orientador`, `curso` presentes |
 | `titulo:15-palavras` | título com no máximo 15 palavras |
 | `titulo:termos-proibidos` | sem "Estudo de…", "Análise de…" etc. |
@@ -84,6 +84,8 @@ Arial 12 pt em todas as saídas: `mainfont=Arial` no PDF, o tema de `referencia.
 | `bib:local-livro` | livros com local e país |
 | `docx:acesso` | `Disponível em:` / `Acesso em:` na saída |
 | `docx:citacao-sem-autor` | nenhuma citação só com o ano |
+| `formato:docx` | pacote OOXML completo e legível pelo Word |
+| `formato:pdf` | estrutura do PDF, páginas e texto extraível |
 | `docx:*` | cabeçalho, ausência de sumário, referências no padrão |
 
 ```sh

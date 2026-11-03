@@ -7,6 +7,7 @@ Uso:
 """
 
 import re
+import subprocess
 import sys
 import unicodedata
 import zipfile
@@ -79,12 +80,12 @@ def sem_acento(texto):
 
 
 def nome_arquivo(d, meta):
-    """Primeiro nome + último sobrenome + tipo do documento, sem espaços nem acentos."""
+    """Primeiro nome + último sobrenome + tipo do documento."""
     completo = sem_acento(str(meta.get("aluno", ""))).split()
     if len(completo) < 2:
         return None
     tipo = NOMES_DOC.get(d.name, d.name.split("-", 1)[-1].replace("-", " ").title())
-    return f"{completo[0]}{completo[-1]} {tipo}"
+    return f"{completo[0]} {completo[-1]} - {tipo}"
 
 
 def regras_fonte(d, meta):
@@ -197,68 +198,105 @@ def regras_fonte(d, meta):
     return falhas
 
 
-def regras_render(d, meta):
-    """Regras que exigem as saídas compiladas em output/."""
-    falhas = 0
-    nome = nome_arquivo(d, meta)
-    saida = RAIZ / "output"
-    docx = saida / f"{nome}.docx"
-    if not docx.exists():
-        return erro("output:docx", f"{docx.name} não encontrado; rode `make all DOC={d.name}`")
-
-    falhas += ok("output:existe", f"{nome}.docx, .pdf, .html")
-
-    texto = _texto_docx(docx)
-    if re.search(r"\btrue\b|\bfalse\b", texto):
-        falhas += erro("docx:yaml-mapa", "valor booleano renderizado (':' sem aspas no YAML)")
-    else:
-        falhas += ok("docx:yaml-mapa", "sem valores booleanos vazados")
-
-    if "Aluno(a)" in texto and "Orientador" in texto:
-        falhas += ok("docx:identificacao", "cabeçalho Aluno/Orientador presente")
-    else:
-        falhas += erro("docx:identificacao", "cabeçalho institucional ausente")
-
-    if "Table of Contents" in texto:
-        falhas += erro("docx:sumario", "sumário presente; o Projeto de Pesquisa não o leva")
-    else:
-        falhas += ok("docx:sumario", "sem sumário, conforme o template")
-
-    if re.search(r"\bABNT\b", texto, re.I):
-        falhas += erro("docx:norma", "menção a ABNT na saída")
-    else:
-        falhas += ok("docx:norma", "sem menção a ABNT")
-
-    if re.search(r"\b(é conduzida|é desenvolvido|realizam-se)\b", texto):
-        falhas += erro("docx:tempo-verbal", "presente do indicativo na saída")
-    else:
-        falhas += ok("docx:tempo-verbal", "planejamento no futuro")
-
-    refs = re.findall(r"^\s*[A-ZÀ-Ý][\w'’]+,\s+[A-Z]\.", texto, re.M)
-    if refs:
-        falhas += ok("docx:referencias", f"{len(refs)} referências no padrão institucional")
-    else:
-        falhas += erro("docx:referencias", "referências fora do padrão Sobrenome, N.")
-
-    if "Disponível em:" in texto and "Acesso em:" in texto:
-        falhas += ok("docx:acesso", "todo recurso on-line com Disponível em/Acesso em")
-    else:
-        falhas += erro("docx:acesso", "falta 'Disponível em:' ou 'Acesso em:'")
-
-    orfas_ano = [
-        m.group(0) for m in re.finditer(r".{40}\(\d{4}\)", texto, re.S)
-        if not re.search(r"[A-ZÀ-Ý]\w+\s*$", m.group(0)[:-6])
+def integridade_docx(caminho):
+    """Confere o pacote OOXML e a formatação: é isso que o Word exige para abrir decente."""
+    partes = [
+        "[Content_Types].xml",
+        "_rels/.rels",
+        "word/document.xml",
+        "word/_rels/document.xml.rels",
+        "word/styles.xml",
+        "word/theme/theme1.xml",
     ]
-    if orfas_ano:
-        falhas += erro("docx:citacao-sem-autor", f"citação só com o ano: {orfas_ano}")
-    else:
-        falhas += ok("docx:citacao-sem-autor", "nenhuma citação órfã de autoria")
+    try:
+        with zipfile.ZipFile(caminho) as z:
+            ruim = z.testzip()
+            faltando = [x for x in partes if x not in set(z.namelist())]
+            if faltando:
+                return f"pacote sem {faltando}"
+            xml = z.read("word/document.xml").decode("utf8")
+            if "<w:document" not in xml or "</w:document>" not in xml:
+                return "word/document.xml malformado"
+            if "word/document.xml" not in z.read("_rels/.rels").decode("utf8"):
+                return "pacote sem relacao com o documento principal"
+            estilos = z.read("word/styles.xml").decode("utf8")
+            if "Arial" not in estilos + z.read("word/theme/theme1.xml").decode("utf8"):
+                return "fonte Arial ausente dos estilos"
+            usados = set(re.findall(r'w:pStyle w:val="([^"]+)"', xml))
+            definidos = set(re.findall(r'w:styleId="([^"]+)"', estilos))
+            orfaos = sorted(usados - definidos)
+            if orfaos:
+                return f"estilos usados e nao definidos (Word cai no padrao): {orfaos}"
+    except zipfile.BadZipFile as e:
+        return f"nao e um zip valido: {e}"
+    except (UnicodeDecodeError, KeyError) as e:
+        return f"parte do pacote ilegivel: {e}"
+    return f"entrada corrompida: {ruim}" if ruim else None
 
-    if "Disponibilidade" in texto.split("#")[0][:400]:
-        falhas += erro("docx:cabecalho", "campo fora do template no cabeçalho")
-    else:
-        falhas += ok("docx:cabecalho", "cabeçalho conforme o template")
-    return falhas
+
+def abnt_docx(caminho):
+    """Confere as regras de formatação da norma nos estilos usados pelo corpo do texto."""
+    estilos = zipfile.ZipFile(caminho).read("word/styles.xml").decode("utf8")
+    corpo = ("Normal", "BodyText", "FirstParagraph", "Compact", "Bibliography", "BlockText")
+    falhas = []
+
+    def bloco(nome):
+        m = re.search(rf'<w:style [^>]*w:styleId="{nome}">.*?</w:style>', estilos, re.S)
+        return m.group(0) if m else ""
+
+    sem_15 = [n for n in corpo if bloco(n) and 'w:line="360"' not in bloco(n)]
+    if sem_15:
+        falhas.append(f"sem entrelinha 1,5: {sem_15}")
+    sem_justo = [n for n in corpo if bloco(n) and 'w:jc w:val="both"' not in bloco(n)]
+    if sem_justo:
+        falhas.append(f"sem texto justificado: {sem_justo}")
+    if '<w:sz w:val="24"' not in estilos:
+        falhas.append("tamanho de fonte diferente de 12 pt")
+    if re.search(r'w:ascii="(?!Arial)[^"]+"', estilos):
+        outras = sorted(set(re.findall(r'w:ascii="([^"]+)"', estilos)) - {"Arial"})
+        falhas.append(f"fontes fora do padrao: {outras}")
+    if not re.search(r'<w:pgMar[^/]*w:left="1418"', zipfile.ZipFile(caminho).read("word/document.xml").decode("utf8")):
+        falhas.append("margens diferentes de 2,5 cm")
+    titulos = re.findall(r'<w:style [^>]*w:styleId="Heading\d">.*?</w:style>', estilos, re.S)
+    coloridos = [t for t in titulos if re.search(r'<w:color w:val="(?!000000)[0-9A-Fa-f]{6}"', t)]
+    if coloridos:
+        falhas.append(f"{len(coloridos)} titulos com cor diferente de preto")
+    return "; ".join(falhas) if falhas else None
+
+
+def integridade_pdf(caminho):
+    """Confere a estrutura do PDF e extrai texto, como faz um leitor."""
+    dados = caminho.read_bytes()
+    if not dados.startswith(b"%PDF-"):
+        return "sem cabecalho %PDF-"
+    if b"%%EOF" not in dados[-2048:]:
+        return "sem marcador %%EOF no fim"
+    if b"/Root" not in dados:
+        return "sem catalogo /Root"
+    try:
+        texto = _extrair_texto_pdf(caminho)
+    except Exception as e:
+        return f"ilegivel para o extrator: {e}"
+    if texto is None:
+        print("  aviso  [formato:pdf] pdftotext ausente; checagem estrutural apenas")
+        return None
+    if len(texto.strip()) < 500:
+        return f"texto extraido muito curto ({len(texto.strip())} caracteres)"
+    paginas = texto.count("\f") + 1
+    if paginas < 2:
+        return f"apenas {paginas} pagina extraivel"
+    return None
+
+
+def _extrair_texto_pdf(caminho):
+    """pdftotext quando disponivel. Sem ele, devolve None: sem extrator, sem veredito."""
+    try:
+        r = subprocess.run(["pdftotext", str(caminho), "-"], capture_output=True, text=True, timeout=60)
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    return None
 
 
 def _texto_docx(caminho):
@@ -266,6 +304,88 @@ def _texto_docx(caminho):
         xml = z.read("word/document.xml").decode("utf8")
     xml = re.sub(r"</w:p>", "\n", xml)
     return re.sub(r"<[^>]+>", "", xml)
+
+
+def regras_render(d, meta):
+    """Regras que exigem as saidas compiladas em output/."""
+    falhas = 0
+    nome = nome_arquivo(d, meta)
+    saida = RAIZ / "output"
+    print()
+
+    for extensao, checar in ((".docx", integridade_docx), (".pdf", integridade_pdf)):
+        arquivo = saida / f"{nome}{extensao}"
+        if not arquivo.exists():
+            falhas += erro(f"output:{extensao[1:]}", f"{arquivo.name} nao encontrado; rode `make all DOC={d.name}`")
+            continue
+        problema = checar(arquivo)
+        if problema:
+            falhas += erro(f"formato:{extensao[1:]}", f"{arquivo.name}: {problema}")
+        else:
+            falhas += ok(f"formato:{extensao[1:]}", f"{arquivo.name} integro ({arquivo.stat().st_size // 1024} KB)")
+
+    dpath = saida / f"{nome}.docx"
+    if dpath.exists():
+        problema = abnt_docx(dpath)
+        if problema:
+            falhas += erro("abnt:formatacao", problema)
+        else:
+            falhas += ok("abnt:formatacao", "Arial 12 pt, 1,5, justificado, margens 2,5 cm")
+
+    docx = saida / f"{nome}.docx"
+    if not docx.exists():
+        return falhas
+    texto = _texto_docx(docx)
+    if re.search(r"\btrue\b|\bfalse\b", texto):
+        falhas += erro("docx:yaml-mapa", "valor booleano renderizado (':' sem aspas no YAML)")
+    else:
+        falhas += ok("docx:yaml-mapa", "sem valores booleanos vazados")
+
+    if "Aluno(a)" in texto and "Orientador" in texto:
+        falhas += ok("docx:identificacao", "cabecalho Aluno/Orientador presente")
+    else:
+        falhas += erro("docx:identificacao", "cabecalho institucional ausente")
+
+    if "Table of Contents" in texto:
+        falhas += erro("docx:sumario", "sumario presente; o Projeto de Pesquisa nao o leva")
+    else:
+        falhas += ok("docx:sumario", "sem sumario, conforme o template")
+
+    if re.search(r"\bABNT\b", texto, re.I):
+        falhas += erro("docx:norma", "mencao a ABNT na saida")
+    else:
+        falhas += ok("docx:norma", "sem mencao a ABNT")
+
+    if re.search(r"\b(é conduzida|é desenvolvido|realizam-se)\b", texto):
+        falhas += erro("docx:tempo-verbal", "presente do indicativo na saida")
+    else:
+        falhas += ok("docx:tempo-verbal", "planejamento no futuro")
+
+    refs = re.findall(r"^\s*[A-ZÀ-Ý][\w'’]+,\s+[A-Z]\.", texto, re.M)
+    if refs:
+        falhas += ok("docx:referencias", f"{len(refs)} referencias no padrao institucional")
+    else:
+        falhas += erro("docx:referencias", "referencias fora do padrao Sobrenome, N.")
+
+    if "Disponível em:" in texto and "Acesso em:" in texto:
+        falhas += ok("docx:acesso", "todo recurso on-line com Disponivel em/Acesso em")
+    else:
+        falhas += erro("docx:acesso", "falta 'Disponivel em:' ou 'Acesso em:'")
+
+    orfas_ano = [
+        m.group(0) for m in re.finditer(r".{40}\(\d{4}\)", texto, re.S)
+        if not re.search(r"[A-ZÀ-Ý]\w+\s*$", m.group(0)[:-6])
+    ]
+    if orfas_ano:
+        falhas += erro("docx:citacao-sem-autor", f"citacao so com o ano: {orfas_ano}")
+    else:
+        falhas += ok("docx:citacao-sem-autor", "nenhuma citacao orfa de autoria")
+
+    if "Disponibilidade" in texto.split("#")[0][:400]:
+        falhas += erro("docx:cabecalho", "campo fora do template no cabecalho")
+    else:
+        falhas += ok("docx:cabecalho", "cabecalho conforme o template")
+    return falhas
 
 
 def main():
@@ -276,13 +396,13 @@ def main():
     for d in docs(apenas):
         meta = ler_metadata(d)
         if meta is None:
-            total += erro("metadata:arquivo", f"{d.name} sem metadata.yaml válido")
+            total += erro("metadata:arquivo", f"{d.name} sem metadata.yaml valido")
             continue
         print(f"\n{d.name}")
         total += regras_fonte(d, meta)
         if render:
             total += regras_render(d, meta)
-    print(f"\n{'OK — tudo conforme' if total == 0 else f'{total} violaç(ões)'}")
+    print(f"\n{'OK — tudo conforme' if total == 0 else f'{total} violacoes'}")
     return 1 if total else 0
 
 

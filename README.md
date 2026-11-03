@@ -3,8 +3,7 @@
 Gerenciamento e Estruturação de APIs: Boas práticas utilizando OpenAPI, Versionamento, Governança e Segurança.
 Repo: https://github.com/fsakatauskas/TCCPosUSP
 
-**Curso:** MBA em Engenharia de Software EaD — 2º semestre 2025
-**Turma:** ENGS252
+**Curso:** MBA em Engenharia de Software EaD - 2º semestre 2025
 
 ## Estrutura
 
@@ -14,20 +13,33 @@ doc/<documento>/
   NN-*.md           # seções, prefixo numérico define a ordem
   referencias.bib   # bibliografia (ABNT via --citeproc)
   abnt.csl          # estilo de citação
+  referencia.docx   # estilos do .docx (fonte Arial)
+  estilo.css        # estilos do .html
+output/             # gerados aqui — <documento>.pdf, .docx, .html
 makefile            # alvos de compilação
 ```
 
-Um diretório por documento — a saída é gerada dentro dele.
+A saída de todos os documentos fica no `output/` da raiz do repositório.
+
+## Fonte
+
+Todo o documento usa **Arial 12 pt**: `mainfont=Arial` no PDF, o tema de
+`referencia.docx` no Word e `estilo.css` no HTML.
+
+Para trocar de fonte: edite `mainfont=` no makefile, o `<a:majorFont>`/`<a:minorFont>` de
+`referencia.docx` (é um zip — `word/theme/theme1.xml`) e a `font-family` do `estilo.css`.
 
 ## Compilar
 
 ```sh
 brew install pandoc
 brew install --cask mactex-no-gui   # necessário para PDF (xelatex)
-make list                          # lista os documentos disponíveis
-make docx DOC=00-projeto-pesquisa   # doc/00-projeto-pesquisa/00-projeto-pesquisa.docx
-make pdf  DOC=00-projeto-pesquisa   # requer TeX instalado
+make list                           # lista os documentos disponíveis
+make all  DOC=00-projeto-pesquisa   # pdf + docx + html
+make pdf  DOC=00-projeto-pesquisa   # só output/00-projeto-pesquisa.pdf
+make docx DOC=00-projeto-pesquisa
 make html DOC=00-projeto-pesquisa
+make clean                          # apaga output/
 ```
 
 Sem `metadata.yaml` no diretório, o `make` aborta com aviso.

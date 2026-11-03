@@ -14,7 +14,7 @@ OWASP API Security Top 10 [@owasp2023]. Essa etapa fundamenta os critérios de a
 nas etapas seguintes.
 
 Na segunda etapa é desenvolvido o artefato: uma API REST implementada em C# sobre ASP.NET Core 9 ou
-10, com persistência em PostgreSQL containerizada via Docker. O contrato é descrito em OpenAPI, a
+10, com persistência em Banco de Dados, containerizada via Docker. O contrato é descrito em OpenAPI, a
 evolução da API segue uma estratégia de versionamento definida a partir da revisão, e a segurança é
 implementada com JWT e autorização por escopo. O pipeline de integração contínua, em GitHub Actions,
 executa build, testes e validação do contrato a cada alteração.

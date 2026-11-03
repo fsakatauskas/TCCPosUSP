@@ -54,9 +54,7 @@ docker-compose.override.yml
 *.seed
 
 # Build do documento
-doc/*/*.pdf
-doc/*/*.docx
-doc/*/*.html
+output/
 *.tex
 !assets/*.tex
 

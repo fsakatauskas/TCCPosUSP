@@ -53,6 +53,13 @@ docker-compose.override.yml
 *.pid
 *.seed
 
+# Build do documento
+doc/*/*.pdf
+doc/*/*.docx
+doc/*/*.html
+*.tex
+!assets/*.tex
+
 # Environment
 .env
 .env.*

@@ -1,0 +1,146 @@
+# TCCPosUSP
+
+Gerenciamento e Estruturação de APIs REST com OpenAPI, Versionamento, Governança e Segurança.
+Repo: https://github.com/fsakatauskas/TCCPosUSP
+
+**Curso:** MBA em Engenharia de Software EaD - 2º semestre 2025
+
+## Estrutura
+
+```
+doc/<documento>/
+  metadata.yaml              # título, autor, orientador, curso, csl, bib, nocite
+  NN-*.md                    # seções, prefixo numérico define a ordem
+  referencias.bib            # bibliografia
+  normas-usp-esalq.csl       # estilo de citação institucional (autor-data)
+  referencia.docx            # template oficial — estilos do .docx (Arial)
+  estilo.css                 # estilos do .html
+output/                      # gerados aqui — Sakatauskas.pdf, .docx, .html
+makefile                     # alvos de compilação
+```
+
+A saída de todos os documentos fica no `output/` da raiz do repositório, nomeada
+`<Primeiro nome> <Último sobrenome> - <Tipo do documento>` — por exemplo
+`Felipe Sakatauskas - Projeto de Pesquisa.docx` — como exige o Sistema de Orientação.
+
+## Compilar
+
+```sh
+brew install pandoc
+brew install --cask mactex-no-gui   # necessário para PDF (xelatex)
+make list                           # lista os documentos disponíveis
+make all  DOC=00-projeto-pesquisa   # pdf + docx + html
+make pdf  DOC=00-projeto-pesquisa   # só output/Sakatauskas.pdf
+make docx DOC=00-projeto-pesquisa
+make html DOC=00-projeto-pesquisa
+make clean                          # apaga output/
+
+make all DOC=00-projeto-pesquisa TOC=1 NUM=1   # versão final: sumário + seções numeradas
+```
+
+Sem `metadata.yaml` no diretório, o `make` aborta com aviso. O Projeto de Pesquisa **não leva
+sumário nem numeração** (padrão do template institucional); ambos são obrigatórios na versão final
+do TCC — para ela, use `TOC=1 NUM=1`.
+
+Ao gerar com `NUM=1`, o `#` de título em `00-identificacao.md` também é numerado. Na versão final,
+mova o título para a chave `title:` do metadata (o template do TCC tem folha de rosto) e mantenha o
+`#` fora do arquivo.
+
+## Normas institucionais
+
+O MBA USP/ESALQ não usa ABNT; segue o *Manual de Instruções e Normas para Trabalhos de Conclusão
+de Curso*. O que já está aplicado:
+
+- **Referências** no padrão institucional, via `normas-usp-esalq.csl`: sobrenome com apenas a
+  inicial maiúscula, iniciais dos prenomes, ano logo após a autoria, títulos sem negrito ou itálico
+  (primeira letra maiúscula apenas na primeira palavra).
+- **Tempo verbal** no futuro do indicativo nas seções de planejamento (Metodologia, Resultados
+  Esperados e Cronograma).
+- **Template oficial** como base do `.docx` (`referencia.docx`), com `Normal` em Arial 12 pt.
+
+## Formatação
+
+Padrão da instituição, aplicado no `.docx`, `.pdf` e `.html`:
+
+| Regra | Valor |
+|---|---|
+| Fonte | Arial 12 pt |
+| Entrelinha | 1,5 |
+| Alinhamento | justificado |
+| Margens | 2,5 cm |
+| Títulos | preto, sem cor de tema |
+| Citações longas | recuo 4 cm, 10 pt, espaçamento simples |
+| Tabelas | 10 pt, espaçamento simples |
+| Notas de rodapé | 10 pt, espaçamento simples |
+| Referências | espaçamento simples, 12 pt, separadas por 6 pt |
+
+`referencia.docx` é **gerado**, não editado à mão — ele reescreve os 49 estilos que o Pandoc emite
+com a formatação acima (o template oficial da instituição não serve como `--reference-doc`: ele
+define 21 estilos, nenhum dos que o Pandoc usa, e o Word cairia no padrão). Para regerar depois de
+mudar um parâmetro:
+
+```sh
+make referencia DOC=00-projeto-pesquisa
+```
+
+O gerador fica em [.guardrail/referencia.py](.guardrail/referencia.py).
+
+## Guardrail
+
+`.guardrail/guardrail.py` valida os fontes e as saídas contra as regras institucionais:
+
+| Regra | Verifica |
+|---|---|
+| `arquivo:nome` | `Nome Sobrenome - Tipo do documento` |
+| `metadata:*` | `pagetitle`, `aluno`, `orientador`, `curso` presentes |
+| `titulo:15-palavras` | título com no máximo 15 palavras |
+| `titulo:termos-proibidos` | sem "Estudo de…", "Análise de…" etc. |
+| `projeto:secoes` | as 5 seções obrigatórias do Projeto de Pesquisa |
+| `tempo-verbal` | planejamento no futuro do indicativo |
+| `norma-institucional` | nenhuma menção a ABNT |
+| `yaml:aspas` | valores com `:` entre aspas (evita o `true`) |
+| `bib:integro` | sem referências órfãs |
+| `citacoes:autoria` | `[-@chave]` sempre com o sobrenome no texto |
+| `cabecalho:campos` | só Aluno(a), Orientador(a), Curso e o título |
+| `bib:data-acesso` | todo recurso on-line com `Acesso em:` |
+| `bib:local-livro` | livros com local e país |
+| `docx:acesso` | `Disponível em:` / `Acesso em:` na saída |
+| `docx:citacao-sem-autor` | nenhuma citação só com o ano |
+| `abnt:formatacao` | Arial 12 pt, entrelinha 1,5 (simples em tabela, nota e referência), justificado, margens 2,5 cm, citação longa 10 pt com recuo 4 cm, tabela com coluna de rótulo legível |
+| `formato:docx` | pacote OOXML completo, XML válido, ordem do schema, sem estilo órfão, legível pelo Word |
+| `formato:pdf` | estrutura do PDF, páginas e texto extraível |
+| `docx:*` | cabeçalho, ausência de sumário, referências no padrão |
+
+```sh
+make check       # fontes + saídas compiladas
+make check-doc   # só os fontes (não precisa compilar)
+make check-all   # todos os documentos
+```
+
+### Rodar ao fim de cada interação
+
+`.guardrail/hook-settings.json` tem o hook de `Stop`. Copie o bloco `hooks` para
+`.claude/settings.json` do projeto (a criação desse arquivo é bloqueada para o agente):
+
+```sh
+mkdir -p .claude && cat .guardrail/hook-settings.json > .claude/settings.json
+```
+
+## Escrever
+
+- Novo documento: `mkdir doc/01-artigo` e crie o `metadata.yaml` dele.
+- Uma seção por arquivo `.md`, prefixo numérico define a ordem.
+- Toda tabela larga declara a largura das colunas na linha `|---|` do markdown: o Pandoc reparte
+  a grade em colunas iguais (`tblW w:type="pct"`), então uma coluna de rótulo com 9 colunas fica
+  com 1,2 cm e quebra a palavra. A largura da coluna é proporcional ao número de traços, e o
+  restante é distribuído entre as outras. `make check` falha se a coluna de rótulo ficar estreita.
+- Citações no estilo Pandoc: `[@chave]` — a chave vem de `referencias.bib`.
+- No YAML, **aspas** em valores com `:` (ex.: `"Orientador: Nome"`) — sem elas, o Pandoc lê a linha
+  como mapa e imprime `true`.
+- `nocite: "@*"` no metadata lista todas as referências do bib, mesmo as ainda não citadas no texto;
+  remova quando todas estiverem efetivamente citadas.
+
+## Entrega
+
+O Projeto de Pesquisa vai pelo Sistema de Orientação (MBX) no arquivo editável do template oficial
+(`.docx`), acompanhado do **Resultado do FDE em `.pdf`**.

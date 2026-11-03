@@ -1,0 +1,74 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+.VolumeIcon.icns
+Icon?
+*.icloud
+
+# C#
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+*.cache
+*.pidb
+*.svclog
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+.vscode/
+TestResults/
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+coverage*.info
+[Cc]overage[Rr]eport/
+*.trx
+[Tt]est[Rr]esult*/
+BenchmarkDotNet.Artifacts/
+publish/
+*.publishsettings
+PublishProfiles/
+*.jfm
+
+# Docker
+.docker/
+docker-compose.override.yml
+*.pid
+*.seed
+
+# Build do documento
+output/
+*.tex
+!assets/*.tex
+
+# Environment
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.local.json
+secrets.json
+
+
+
+# Python
+__pycache__/
+*.pyc

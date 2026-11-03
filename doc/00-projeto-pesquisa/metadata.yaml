@@ -1,16 +1,11 @@
 ---
-title: "Boas Práticas para o Gerenciamento e Estruturação de APIs REST"
-subtitle: "OpenAPI, Versionamento, Governança e Segurança"
-author:
-  - Felipe Pacheco Mendonça Sakatauskas
-  - Orientador: Maurício Acconcia Dias
-advisor: "Maurício Acconcia Dias"
-course: "MBA em Engenharia de Software EaD - 2º semestre 2025"
-date: "Novembro de 2026"
+pagetitle: "Gerenciamento e Estruturação de APIs REST com OpenAPI, Versionamento, Governança e Segurança"
+aluno: "Felipe Pacheco Mendonça Sakatauskas"
+orientador: "Maurício Acconcia Dias"
+curso: "MBA em Engenharia de Software EaD - 2º semestre 2025"
 lang: pt-BR
-keywords: [OpenAPI, Versionamento, Governança, Segurança]
 bibliography: referencias.bib
-csl: abnt.csl
+csl: normas-usp-esalq.csl
 link-citations: true
 nocite: "@*"
 reference-section-title: Referências

@@ -1,7 +1,7 @@
 # Cronograma de Atividades
 
-Atividades planejadas de outubro de 2026 a maio de 2027, alinhadas às entregas estipuladas pela
-coordenação do curso: Projeto (27/10/2026 a 03/11/2026), Resultados Preliminares
+As atividades serão realizadas de outubro de 2026 a maio de 2027, em alinhamento às entregas
+estipuladas pela coordenação do curso: Projeto (27/10/2026 a 03/11/2026), Resultados Preliminares
 (29/01/2027 a 05/02/2027), Trabalho Final (13/04/2027 a 27/04/2027) e Slides
 (04/05/2027 a 25/05/2027).
 
@@ -20,4 +20,4 @@ coordenação do curso: Projeto (27/10/2026 a 03/11/2026), Resultados Preliminar
 | Redação dos Resultados Preliminares e entrega | | | | X | X | | | |
 | Redação do Trabalho Final e entrega | | | | | | X | X | |
 | Elaboração da apresentação (slides) | | | | | | | | X |
-| Revisão conforme ABNT | | | | | | | X | X |
+| Revisão conforme as normas institucionais | | | | | | | X | X |
